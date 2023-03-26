@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request
 import openai
 import os
+import requests
 
 app = Flask(__name__)
 
@@ -10,11 +11,6 @@ import speech_recognition as sr
 # Initialize recognizer class (for recognizing the speech)
 r = sr.Recognizer()
 
-openai.api_key = os.getenv('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')
-
-def create_img_from_text(text_new):
-        response = openai.Image.create(text_new,n=3,size="256x256")
-        return response['data']
 
 #Home Page
 @app.route("/", methods=["GET", "POST"])
@@ -51,22 +47,48 @@ def speech_to_text(lang):
             #print(audio_text)
             text = r.recognize_google(audio_text, language = lang)
             print(text)
+            
+            # Set up API endpoint and API key
+            api_url = 'https://api.openai.com/v1/images/generations'
+            api_key = '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'
 
-            images = []
-            text_new = text
-            #text = "A 3D representation of a blue tennis ball on a green grass"
-            res = create_img_from_text(text_new)
-            if len(res) > 0:
-                for img in res:
-                    images.append(img['url'])
-            print(images)
-            print("=======================================")
+            # Set up request parameters
+            prompt = text
+            model = 'image-alpha-001'
+            num_images = 1
+            size = '512x512'
+            response_format = 'url'
+
+            # Set up request headers
+            headers = {
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {api_key}'
+            }
+
+            # Set up request body
+            data = {
+                'model': model,
+                'prompt': prompt,
+                'num_images': num_images,
+                'size': size,
+                'response_format': response_format
+            }
+
+            # Make the request
+            response = requests.post(api_url, headers=headers, json=data)
+
+            # Parse the response
+            if response.status_code == 200:
+                result = response.json()['data'][0]['url']
+                print(f'Generated image: {result}')
+            else:
+                print(f'Request failed with status code {response.status_code}: {response.text}')   
     
         except:
             print('Sorry.. run again...')
             test = "Try Again"
     
-    return render_template('image.html', text=text)
+    return render_template('image.html', text=text, result=result)
 
 
 
